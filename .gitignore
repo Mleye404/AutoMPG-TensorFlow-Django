@@ -1,0 +1,16 @@
+# Environnement virtuel
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Base de données Django
+db.sqlite3
+
+# VS Code
+.vscode/
+
+# Cache
+.pytest_cache/

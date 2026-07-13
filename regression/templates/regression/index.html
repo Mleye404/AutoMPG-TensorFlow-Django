@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auto MPG Predictor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+
+:root{
+  --asphalt:#1a1025;
+  --panel:#241733;
+  --panel-2:#2f1d40;
+  --steel:#4a2f5e;
+  --gold:#e8b44c;
+  --coral:#ff5c7a;
+  --text:#f6efe6;
+  --muted:#a992b8;
+  --line:rgba(255,255,255,.08);
+  --font-display:'Orbitron', sans-serif;
+  --font-body:'Inter', sans-serif;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+body{
+  font-family:var(--font-body);
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 20% -10%, rgba(232,180,76,.12), transparent 45%),
+    radial-gradient(circle at 100% 10%, rgba(255,92,122,.10), transparent 40%),
+    var(--asphalt);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding:40px 20px;
+  color:var(--text);
+}
+
+/* subtle carbon-fiber texture on background */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.015) 0 2px, transparent 2px 6px);
+  pointer-events:none;
+}
+
+.dashboard{
+  position:relative;
+  width:100%;
+  max-width:560px;
+  background:linear-gradient(180deg, var(--panel), var(--panel-2));
+  border:1px solid var(--line);
+  border-radius:22px;
+  padding:38px 36px 32px;
+  box-shadow:
+    0 30px 60px -20px rgba(0,0,0,.6),
+    inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+/* top instrument strip */
+.dashboard::before{
+  content:"";
+  position:absolute;
+  top:0; left:24px; right:24px;
+  height:3px;
+  background:linear-gradient(90deg, transparent, var(--gold), var(--coral), transparent);
+  opacity:.8;
+  border-radius:0 0 3px 3px;
+}
+
+.eyebrow{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-family:var(--font-display);
+  font-size:11px;
+  letter-spacing:.35em;
+  color:var(--gold);
+  text-transform:uppercase;
+  margin-bottom:14px;
+}
+
+.eyebrow::before{
+  content:"";
+  width:7px;height:7px;
+  border-radius:50%;
+  background:var(--gold);
+  box-shadow:0 0 10px 2px var(--gold);
+}
+
+h1{
+  font-family:var(--font-display);
+  font-weight:700;
+  font-size:28px;
+  letter-spacing:.02em;
+  color:var(--text);
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:6px;
+}
+
+h1 .flag{ font-size:26px; }
+
+.subtitle{
+  color:var(--muted);
+  font-size:14px;
+  line-height:1.5;
+  margin-bottom:30px;
+  max-width:420px;
+}
+
+/* ===== GAUGE (signature element) ===== */
+.gauge-wrap{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  margin:6px 0 30px;
+  padding:22px 0 10px;
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+}
+
+.gauge-svg{ width:220px; height:130px; overflow:visible; }
+
+.gauge-arc-bg{ fill:none; stroke:rgba(255,255,255,.07); stroke-width:12; }
+.gauge-arc-fill{
+  fill:none;
+  stroke:url(#gaugeGradient);
+  stroke-width:12;
+  stroke-linecap:round;
+  stroke-dasharray:251.2;
+  stroke-dashoffset:251.2;
+  transition:stroke-dashoffset 1.4s cubic-bezier(.16,1,.3,1);
+}
+.gauge-needle{
+  transform-origin:110px 110px;
+  transform:rotate(-90deg);
+  transition:transform 1.4s cubic-bezier(.16,1,.3,1);
+}
+.gauge-center{ fill:var(--text); }
+
+.gauge-value{
+  font-family:var(--font-display);
+  font-size:34px;
+  font-weight:900;
+  fill:var(--text);
+}
+.gauge-unit{
+  font-family:var(--font-body);
+  font-size:12px;
+  fill:var(--muted);
+  letter-spacing:.15em;
+}
+
+.gauge-caption{
+  margin-top:10px;
+  font-size:12px;
+  color:var(--muted);
+  letter-spacing:.05em;
+  text-align:center;
+}
+.gauge-caption strong{ color:var(--gold); font-weight:600; }
+
+/* ===== FORM ===== */
+form{ display:flex; flex-direction:column; gap:14px; }
+
+.grid-2{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+
+.field{ position:relative; }
+
+.field label{
+  display:block;
+  font-size:11px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:6px;
+  font-weight:600;
+}
+
+.field .icon{
+  position:absolute;
+  left:14px;
+  top:38px;
+  font-size:14px;
+  opacity:.55;
+  pointer-events:none;
+}
+
+.field input{
+  width:100%;
+  padding:13px 14px 13px 36px;
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--line);
+  border-radius:10px;
+  color:var(--text);
+  font-size:14.5px;
+  font-family:var(--font-body);
+  transition:.25s;
+}
+
+.field input::placeholder{ color:rgba(234,242,248,.28); }
+
+.field input:hover{ border-color:rgba(255,255,255,.18); }
+
+.field input:focus{
+  outline:none;
+  border-color:var(--gold);
+  background:rgba(232,180,76,.06);
+  box-shadow:0 0 0 3px rgba(232,180,76,.14);
+}
+
+.origin-title{
+  font-size:11px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--muted);
+  font-weight:600;
+  margin:6px 0 -2px;
+}
+
+.grid-3{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:10px;
+}
+
+button{
+  margin-top:14px;
+  width:100%;
+  padding:16px;
+  border:none;
+  border-radius:12px;
+  background:linear-gradient(135deg, var(--gold), #d98f2b);
+  color:#2b1a05;
+  font-family:var(--font-display);
+  font-weight:700;
+  font-size:15px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  cursor:pointer;
+  transition:.25s;
+  box-shadow:0 8px 20px -6px rgba(232,180,76,.45);
+}
+
+button:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 26px -6px rgba(232,180,76,.6);
+}
+button:active{ transform:translateY(0); }
+
+.footer{
+  margin-top:26px;
+  display:flex;
+  justify-content:center;
+  gap:18px;
+  font-size:11px;
+  color:var(--muted);
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.footer span::before{
+  content:"•";
+  margin-right:18px;
+  color:var(--steel);
+}
+.footer span:first-child::before{ content:""; margin:0; }
+
+@media (max-width:480px){
+  .grid-2, .grid-3{ grid-template-columns:1fr; }
+  .dashboard{ padding:28px 22px 26px; }
+}
+</style>
+</head>
+<body>
+
+<div class="dashboard">
+
+  <div class="eyebrow">Console Diagnostic</div>
+  <h1><span class="flag">🚗</span> Auto MPG Predictor</h1>
+  <p class="subtitle">Prédiction de la consommation d'un véhicule grâce à un modèle TensorFlow entraîné sur ses caractéristiques techniques.</p>
+
+  <!-- SIGNATURE ELEMENT: dashboard gauge, needle sweeps to the predicted MPG -->
+  <div class="gauge-wrap">
+    <svg class="gauge-svg" viewBox="0 0 220 130">
+      <defs>
+        <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#e8b44c"/>
+          <stop offset="100%" stop-color="#ff5c7a"/>
+        </linearGradient>
+      </defs>
+      <path class="gauge-arc-bg" d="M 15 110 A 95 95 0 0 1 205 110"/>
+      <path class="gauge-arc-fill" id="gaugeFill" d="M 15 110 A 95 95 0 0 1 205 110"/>
+      <g class="gauge-needle" id="gaugeNeedle">
+        <line x1="110" y1="110" x2="110" y2="35" stroke="#f6efe6" stroke-width="3" stroke-linecap="round"/>
+      </g>
+      <circle class="gauge-center" cx="110" cy="110" r="6"/>
+      <text x="110" y="95" text-anchor="middle" class="gauge-value" id="gaugeValue">{% if prediction %}{{ prediction|floatformat:1 }}{% else %}--{% endif %}</text>
+      <text x="110" y="112" text-anchor="middle" class="gauge-unit">MPG ESTIMÉ</text>
+    </svg>
+    <div class="gauge-caption">
+      {% if prediction %}
+        <strong>✅ Prédiction générée</strong> — modèle TensorFlow
+      {% else %}
+        En attente des paramètres du véhicule
+      {% endif %}
+    </div>
+  </div>
+
+  <form method="POST">
+    {% csrf_token %}
+
+    <div class="grid-2">
+      <div class="field">
+        <label>Cylindres</label>
+        <span class="icon">⚙️</span>
+        <input type="number" step="any" name="cylinders" placeholder="ex : 6" required>
+      </div>
+      <div class="field">
+        <label>Displacement</label>
+        <span class="icon">🛠️</span>
+        <input type="number" step="any" name="displacement" placeholder="ex : 250" required>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="field">
+        <label>Horsepower</label>
+        <span class="icon">🐎</span>
+        <input type="number" step="any" name="horsepower" placeholder="ex : 105" required>
+      </div>
+      <div class="field">
+        <label>Weight</label>
+        <span class="icon">⚖️</span>
+        <input type="number" step="any" name="weight" placeholder="ex : 3200" required>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="field">
+        <label>Acceleration</label>
+        <span class="icon">💨</span>
+        <input type="number" step="any" name="acceleration" placeholder="ex : 15.5" required>
+      </div>
+      <div class="field">
+        <label>Model Year</label>
+        <span class="icon">📅</span>
+        <input type="number" step="any" name="year" placeholder="ex : 78" required>
+      </div>
+    </div>
+
+    <div class="origin-title">Origine du véhicule</div>
+    <div class="grid-3">
+      <div class="field">
+        <label>Europe</label>
+        <span class="icon">🇪🇺</span>
+        <input type="number" min="0" max="1" name="origin_europe" placeholder="0 / 1" required>
+      </div>
+      <div class="field">
+        <label>Japon</label>
+        <span class="icon">🇯🇵</span>
+        <input type="number" min="0" max="1" name="origin_japan" placeholder="0 / 1" required>
+      </div>
+      <div class="field">
+        <label>USA</label>
+        <span class="icon">🇺🇸</span>
+        <input type="number" min="0" max="1" name="origin_usa" placeholder="0 / 1" required>
+      </div>
+    </div>
+
+    <button type="submit">🚀 Prédire le MPG</button>
+  </form>
+
+  <div class="footer">
+    <span>Machine Learning</span>
+    <span>TensorFlow</span>
+    <span>Django</span>
+  </div>
+
+</div>
+
+<script>
+// Anime l'aiguille et l'arc de la jauge vers la valeur prédite au chargement
+(function(){
+  var prediction = {% if prediction %}{{ prediction|floatformat:2 }}{% else %}null{% endif %};
+  if(prediction === null) return;
+
+  // Echelle de la jauge : 0 à 50 MPG (ajustable selon les données du modèle)
+  var maxMpg = 50;
+  var pct = Math.max(0, Math.min(1, prediction / maxMpg));
+
+  var needle = document.getElementById('gaugeNeedle');
+  var fill = document.getElementById('gaugeFill');
+
+  var angle = -90 + (pct * 180); // de -90deg (gauche) a +90deg (droite)
+  var offset = 251.2 - (pct * 251.2);
+
+  requestAnimationFrame(function(){
+    needle.style.transform = 'rotate(' + angle + 'deg)';
+    fill.style.strokeDashoffset = offset;
+  });
+})();
+</script>
+
+</body>
+</html>
